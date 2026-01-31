@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Rajzolós Játék</title>
+    
+    <!-- PWA Meta tagek -->
+    <meta name="description" content="Online többjátékos rajzolós játék - Találd ki mit rajzolnak!">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Rajzolós">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Ikonok -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        /* Login Screen */
+        .login-screen {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .login-screen input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .login-screen button {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .login-screen button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        .login-screen .connection-buttons {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .login-screen .join-input-section {
+            margin-top: 20px;
+        }
+        
+        .login-screen .join-input-section input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        /* Connection Screen */
+        .connection-screen {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .game-id-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .game-id-display {
+            background: #fff;
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 2px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        .connection-buttons {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn-host, .btn-join, .btn-copy {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-host {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-join {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-copy {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-host:hover, .btn-join:hover, .btn-copy:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .join-input-section {
+            margin-top: 20px;
+        }
+
+        .join-input-section input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        /* Lobby Screen */
+        .lobby-screen {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .lobby-main {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .lobby-settings {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .players-list {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .player-item {
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-item.host {
+            background: #c8e6c9;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .setting-group input, .setting-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .btn-start-game {
+            width: 100%;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-start-game:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn-start-game:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Chat */
+        .chat-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .chat-messages {
+            height: 200px;
+            overflow-y: auto;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #fafafa;
+        }
+
+        .chat-message {
+            padding: 5px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+        }
+
+        .chat-message.system {
+            background: #fff3cd;
+            color: #856404;
+            font-style: italic;
+        }
+
+        .chat-message.correct {
+            background: #d4edda;
+            color: #155724;
+            font-weight: bold;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .chat-input-area button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Game Screen */
+        .game-screen {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 20px;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timer {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .timer.warning {
+            color: #ff9800;
+            animation: pulse 1s infinite;
+        }
+
+        .timer.danger {
+            color: #f44336;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .current-word {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            letter-spacing: 3px;
+        }
+
+        .canvas-container {
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #drawingCanvas {
+            border: 3px solid #ddd;
+            border-radius: 8px;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .drawing-tools {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 8px;
+        }
+
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-btn.active {
+            border-color: #333;
+            transform: scale(1.2);
+        }
+
+        .tool-btn {
+            padding: 10px 15px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover, .tool-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .size-slider {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .side-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .scoreboard {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .score-item {
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .score-item.drawing {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+
+        .score-item.current {
+            background: #c8e6c9;
+        }
+
+        .score-points {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+
+        /* Podium Screen */
+        .podium-screen {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .podium {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .podium-place {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 20px;
+            color: white;
+            min-width: 150px;
+        }
+
+        .podium-place.first {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            padding: 30px 20px;
+        }
+
+        .podium-place.second {
+            background: linear-gradient(135deg, #C0C0C0 0%, #808080 100%);
+            padding: 25px 20px;
+        }
+
+        .podium-place.third {
+            background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
+            padding: 20px;
+        }
+
+        .podium-rank {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .podium-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .podium-score {
+            font-size: 16px;
+        }
+
+        .btn-play-again {
+            width: 100%;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .status-message {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: #1976d2;
+        }
+
+        .status-message.error {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .status-message.success {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .lobby-screen, .game-screen {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            #drawingCanvas {
+                max-width: 100%;
+            }
+
+            .podium {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .podium-place {
+                min-width: auto;
+            }
+
+            /* Játék chat mobilon */
+            .game-area .chat-container {
+                position: sticky;
+                bottom: 0;
+                background: white;
+                z-index: 10;
+                padding: 15px;
+                border-radius: 10px;
+                box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
+            }
+
+            .game-area .chat-messages {
+                max-height: 120px !important;
+            }
+
+            .side-panel {
+                order: -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Online Rajzolós Játék</h1>
+
+        <!-- Login Screen -->
+        <div id="loginScreen" class="login-screen">
+            <input type="text" id="playerNameInput" placeholder="Add meg a nevedet..." maxlength="20">
+            <div class="connection-buttons">
+                <button class="btn-host" onclick="createServerFromLogin()">🎮 Új játék létrehozása</button>
+                <button class="btn-join" onclick="showJoinInput()">🔗 Csatlakozás játékhoz</button>
+            </div>
+            <div id="joinInputSection" class="join-input-section hidden">
+                <input type="text" id="joinGameIdLogin" placeholder="Írd be a szerver ID-jét...">
+                <button class="btn-join" onclick="joinServerFromLogin()">Csatlakozás</button>
+            </div>
+        </div>
+
+        <!-- Connection Screen (már nem kell) -->
+        <div id="connectionScreen" class="connection-screen hidden">
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobbyScreen" class="lobby-screen hidden">
+            <div class="lobby-main">
+                <h2>Lobby</h2>
+                
+                <div class="game-id-section" id="lobbyServerId" style="display: none;">
+                    <label>Szerver ID (add meg a többi játékosnak):</label>
+                    <div class="game-id-display" id="lobbyServerIdDisplay"></div>
+                    <button class="btn-copy" onclick="copyLobbyServerId()">📋 Másolás</button>
+                </div>
+                
+                <div class="players-list" id="playersList"></div>
+                
+                <div class="chat-container">
+                    <h3>Chat</h3>
+                    <div class="chat-messages" id="lobbyChatMessages"></div>
+                    <div class="chat-input-area">
+                        <input type="text" id="lobbyChatInput" placeholder="Írj üzenetet..." onkeypress="if(event.key==='Enter') sendLobbyChat()">
+                        <button onclick="sendLobbyChat()">Küldés</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lobby-settings">
+                <h3>Beállítások</h3>
+                <div class="setting-group">
+                    <label>Rajzolási idő (mp):</label>
+                    <input type="number" id="drawTimeInput" value="120" min="30" max="300" step="10">
+                </div>
+                <div class="setting-group">
+                    <label>Győzelmi pont:</label>
+                    <input type="number" id="winPointsInput" value="10" min="3" max="50">
+                </div>
+                <button class="btn-start-game" id="startGameBtn" onclick="startGame()" disabled>Játék indítása</button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="game-screen hidden">
+            <div class="game-area">
+                <div class="game-info">
+                    <div>
+                        <div class="current-word" id="currentWord">_ _ _ _ _</div>
+                        <div id="drawingPlayerName" style="font-size: 14px; color: #666; margin-top: 5px;"></div>
+                    </div>
+                    <div class="timer" id="timer">2:00</div>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="drawingCanvas" width="800" height="600"></canvas>
+                </div>
+
+                <div class="drawing-tools" id="drawingTools">
+                    <div class="color-picker" id="colorPicker">
+                        <div class="color-btn active" style="background: #000000;" data-color="#000000"></div>
+                        <div class="color-btn" style="background: #FF0000;" data-color="#FF0000"></div>
+                        <div class="color-btn" style="background: #00FF00;" data-color="#00FF00"></div>
+                        <div class="color-btn" style="background: #0000FF;" data-color="#0000FF"></div>
+                        <div class="color-btn" style="background: #FFFF00;" data-color="#FFFF00"></div>
+                        <div class="color-btn" style="background: #FF00FF;" data-color="#FF00FF"></div>
+                        <div class="color-btn" style="background: #00FFFF;" data-color="#00FFFF"></div>
+                        <div class="color-btn" style="background: #FFFFFF; border-color: #333;" data-color="#FFFFFF"></div>
+                    </div>
+                    <button class="tool-btn" onclick="clearCanvas()">🗑️ Törlés</button>
+                    <div class="size-slider">
+                        <label>Vonalvastagság: <span id="sizeValue">5</span>px</label>
+                        <input type="range" id="brushSize" min="1" max="20" value="5" style="width: 100%;">
+                    </div>
+                </div>
+
+                <!-- Chat input a rajztábla alatt -->
+                <div class="chat-container" style="margin-top: 20px;">
+                    <h3>Tippelj!</h3>
+                    <div class="chat-input-area">
+                        <input type="text" id="gameChatInput" placeholder="Találd ki..." onkeypress="if(event.key==='Enter') sendGameChat()">
+                        <button onclick="sendGameChat()">Küldés</button>
+                    </div>
+                    <div class="chat-messages" id="gameChatMessages" style="height: 150px; margin-top: 10px;"></div>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <div class="scoreboard">
+                    <h3>Eredmények</h3>
+                    <div id="scoreboardList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Podium Screen -->
+        <div id="podiumScreen" class="podium-screen hidden">
+            <h2>🏆 Játék vége!</h2>
+            <div class="podium" id="podium"></div>
+            <button class="btn-play-again" onclick="returnToLobby()">Vissza a lobbyba</button>
+        </div>
+    </div>
+
+    <script>
+        // Globális változók
+        let peer = null;
+        let myPeerId = null;
+        let playerName = '';
+        let isHost = false;
+        let connections = {};
+        let players = {};
+        let gameSettings = {
+            drawTime: 120,
+            winPoints: 10
+        };
+        let gameState = {
+            currentDrawer: null,
+            currentWord: '',
+            roundStartTime: null,
+            scores: {},
+            playerOrder: [],
+            roundNumber: 0,
+            guessedPlayers: []
+        };
+        
+        // Canvas változók
+        let canvas = null;
+        let ctx = null;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentColor = '#000000';
+        let currentSize = 5;
+        
+        // Szavak listája
+        const wordList = [
+            'macska', 'kutya', 'ház', 'autó', 'fa', 'virág', 'nap', 'hold', 'csillag', 'víz',
+            'tűz', 'föld', 'levegő', 'hegy', 'tenger', 'folyó', 'madár', 'hal', 'ló', 'tehén',
+            'alma', 'körte', 'banán', 'narancs', 'szőlő', 'eper', 'cseresznye', 'barack', 'dinnye', 'citrom',
+            'kenyér', 'vaj', 'sajt', 'tej', 'tojás', 'hús', 'hal', 'zöldség', 'gyümölcs', 'sütemény',
+            'toll', 'könyv', 'ceruza', 'radír', 'papír', 'olló', 'ragasztó', 'vonalzó', 'táska', 'cipő',
+            'kalap', 'szemüveg', 'óra', 'telefon', 'számítógép', 'televízió', 'rádió', 'kamera', 'gitár', 'zongora',
+            'asztal', 'szék', 'ágy', 'szekrény', 'lámpa', 'ablak', 'ajtó', 'fal', 'padló', 'tető',
+            'kerékpár', 'motor', 'repülő', 'hajó', 'vonat', 'busz', 'taxi', 'rakéta', 'helikopter', 'léggömb',
+            'robot', 'király', 'királynő', 'herceg', 'hercegnő', 'lovag', 'sárkány', 'varázslat', 'tündér', 'manó',
+            'zászló', 'korona', 'kard', 'pajzs', 'íj', 'nyíl', 'sisak', 'vár', 'torony', 'híd'
+        ];
+
+        // Inicializálás
+        function initializePeer() {
+            // Egyedi, egyszerű ID generálása a játékos nevéből + 3 szám
+            const sanitizedName = playerName.toLowerCase().replace(/[^a-z0-9]/g, ''); // Csak betű és szám
+            const randomNumbers = Math.floor(Math.random() * 900) + 100; // 100-999 között
+            const customId = sanitizedName + randomNumbers;
+            
+            peer = new Peer(customId);
+            
+            peer.on('open', function(id) {
+                myPeerId = id;
+                console.log('Peer ID:', id);
+            });
+
+            peer.on('connection', function(conn) {
+                if (!isHost) return;
+                
+                conn.on('open', function() {
+                    setupConnection(conn);
+                });
+            });
+
+            peer.on('error', function(err) {
+                console.error('Peer hiba:', err);
+                
+                // Ha az ID már foglalt, próbálkozunk újra más számokkal
+                if (err.type === 'unavailable-id') {
+                    alert('Ez az ID már foglalt, próbálkozz újra!');
+                    // Bezárjuk a peer-t és újat hozunk létre
+                    if (peer) {
+                        peer.destroy();
+                    }
+                    const newSanitizedName = playerName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const newRandomNumbers = Math.floor(Math.random() * 900) + 100;
+                    const newCustomId = newSanitizedName + newRandomNumbers;
+                    peer = new Peer(newCustomId);
+                    
+                    peer.on('open', function(id) {
+                        myPeerId = id;
+                        console.log('Új Peer ID:', id);
+                    });
+                } else {
+                    alert('Kapcsolódási hiba: ' + err.type);
+                }
+            });
+        }
+
+        function createServerFromLogin() {
+            const nameInput = document.getElementById('playerNameInput').value.trim();
+            if (nameInput.length < 2) {
+                alert('Először írd be a nevedet! (legalább 2 karakter)');
+                return;
+            }
+            
+            playerName = nameInput;
+            
+            // Peer inicializálás a névvel
+            if (!peer) {
+                initializePeer();
+            }
+            
+            // Várunk amíg a peer ID elkészül
+            const waitForPeer = setInterval(() => {
+                if (myPeerId) {
+                    clearInterval(waitForPeer);
+                    createServer();
+                }
+            }, 100);
+        }
+
+        function showJoinInput() {
+            const nameInput = document.getElementById('playerNameInput').value.trim();
+            if (nameInput.length < 2) {
+                alert('Először írd be a nevedet! (legalább 2 karakter)');
+                return;
+            }
+            
+            playerName = nameInput;
+            document.getElementById('joinInputSection').classList.remove('hidden');
+            
+            // Peer inicializálás a névvel
+            if (!peer) {
+                initializePeer();
+            }
+        }
+
+        function joinServerFromLogin() {
+            const serverId = document.getElementById('joinGameIdLogin').value.trim();
+            if (!serverId) {
+                alert('Add meg a szerver ID-jét!');
+                return;
+            }
+
+            if (!peer || !myPeerId) {
+                alert('Várj, a kapcsolat még inicializálódik...');
+                return;
+            }
+
+            const conn = peer.connect(serverId, { reliable: true });
+            
+            conn.on('open', function() {
+                setupConnection(conn);
+                conn.send({
+                    type: 'player-join',
+                    player: {
+                        name: playerName,
+                        peerId: myPeerId
+                    }
+                });
+            });
+
+            conn.on('error', function(err) {
+                alert('Csatlakozási hiba! Ellenőrizd a szerver ID-t.');
+                console.error(err);
+            });
+        }
+
+        function createServer() {
+            if (!peer || !myPeerId) {
+                alert('Várj, a kapcsolat még inicializálódik...');
+                return;
+            }
+
+            isHost = true;
+            players[myPeerId] = {
+                name: playerName,
+                peerId: myPeerId,
+                isHost: true
+            };
+            gameState.scores[myPeerId] = 0;
+            gameState.playerOrder.push(myPeerId);
+            
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('lobbyScreen').classList.remove('hidden');
+            
+            // Szerver ID megjelenítése a lobbyben
+            document.getElementById('lobbyServerId').style.display = 'block';
+            document.getElementById('lobbyServerIdDisplay').textContent = myPeerId;
+            
+            updatePlayersList();
+            updateStartButton();
+            addLobbyChatMessage('Szerver létrehozva! Várd a többi játékost.', 'system');
+        }
+
+        function setupConnection(conn) {
+            const peerId = conn.peer;
+            connections[peerId] = conn;
+
+            conn.on('data', function(data) {
+                handleMessage(data, peerId);
+            });
+
+            conn.on('close', function() {
+                const playerName = players[peerId]?.name;
+                
+                // Játékos eltávolítása
+                delete connections[peerId];
+                
+                // Ha a játék aktív (game screen látható)
+                const gameScreenVisible = !document.getElementById('gameScreen').classList.contains('hidden');
+                
+                if (gameScreenVisible) {
+                    // Játékos inaktívvá tétele a játékban
+                    if (players[peerId]) {
+                        players[peerId].disconnected = true;
+                        addGameChatMessage(playerName + ' kilépett a játékból.', 'system');
+                    }
+                    
+                    // Ha ő rajzolt éppen, akkor új kör
+                    if (isHost && peerId === gameState.currentDrawer) {
+                        addGameChatMessage('A rajzoló kilépett, új kör következik...', 'system');
+                        setTimeout(() => {
+                            nextRound();
+                        }, 2000);
+                    }
+                    
+                    updateScoreboard();
+                } else {
+                    // Lobbyben vagyunk
+                    delete players[peerId];
+                    const index = gameState.playerOrder.indexOf(peerId);
+                    if (index > -1) {
+                        gameState.playerOrder.splice(index, 1);
+                    }
+                    delete gameState.scores[peerId];
+                    
+                    updatePlayersList();
+                    addLobbyChatMessage(playerName + ' kilépett.', 'system');
+                    
+                    // Ha host volt, értesítjük a többieket
+                    if (isHost) {
+                        broadcast({
+                            type: 'player-disconnect',
+                            peerId: peerId
+                        });
+                        updateStartButton();
+                    }
+                }
+            });
+
+            if (!isHost) {
+                // Csatlakozó játékos esetén elrejtjük a login screent
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('lobbyScreen').classList.remove('hidden');
+            }
+        }
+
+        function handleMessage(data, fromPeerId) {
+            switch(data.type) {
+                case 'player-join':
+                    if (isHost) {
+                        players[fromPeerId] = data.player;
+                        gameState.scores[fromPeerId] = 0;
+                        gameState.playerOrder.push(fromPeerId);
+                        
+                        broadcast({
+                            type: 'lobby-state',
+                            players: players,
+                            settings: gameSettings,
+                            playerOrder: gameState.playerOrder,
+                            scores: gameState.scores
+                        });
+                        
+                        updatePlayersList();
+                        updateStartButton();
+                        addLobbyChatMessage(data.player.name + ' csatlakozott!', 'system');
+                    }
+                    break;
+
+                case 'lobby-state':
+                    players = data.players;
+                    gameSettings = data.settings;
+                    gameState.playerOrder = data.playerOrder;
+                    gameState.scores = data.scores;
+                    updatePlayersList();
+                    updateLobbySettings();
+                    break;
+
+                case 'lobby-chat':
+                    addLobbyChatMessage(data.message, 'player', data.playerName);
+                    // Host továbbítja a chatot minden játékosnak
+                    if (isHost) {
+                        broadcast(data, fromPeerId);
+                    }
+                    break;
+
+                case 'settings-update':
+                    if (!isHost) {
+                        gameSettings = data.settings;
+                        updateLobbySettings();
+                    }
+                    break;
+
+                case 'game-start':
+                    startGameForAll(data.gameState);
+                    break;
+
+                case 'round-start':
+                    startRound(data);
+                    break;
+
+                case 'draw-data':
+                    if (!isCurrentDrawer()) {
+                        drawRemoteLine(data);
+                    }
+                    // Host továbbítja a rajzolási adatot minden játékosnak
+                    if (isHost && fromPeerId !== myPeerId) {
+                        broadcast(data, fromPeerId);
+                    }
+                    break;
+
+                case 'clear-canvas':
+                    if (!isCurrentDrawer()) {
+                        clearCanvas();
+                    }
+                    // Host továbbítja a törlést minden játékosnak
+                    if (isHost && fromPeerId !== myPeerId) {
+                        broadcast(data, fromPeerId);
+                    }
+                    break;
+
+                case 'game-chat':
+                    handleGameChat(data);
+                    // Host továbbítja a chatot minden játékosnak
+                    if (isHost && fromPeerId !== myPeerId) {
+                        broadcast(data, fromPeerId);
+                    }
+                    break;
+
+                case 'correct-guess':
+                    handleCorrectGuess(data);
+                    break;
+
+                case 'round-end':
+                    endRound(data);
+                    break;
+
+                case 'game-end':
+                    showPodium(data.finalScores);
+                    break;
+
+                case 'return-lobby':
+                    returnToLobby();
+                    break;
+
+                case 'player-disconnect':
+                    handlePlayerDisconnect(data.peerId);
+                    break;
+            }
+        }
+
+        function broadcast(data, excludePeer = null) {
+            Object.keys(connections).forEach(peerId => {
+                if (peerId !== excludePeer && connections[peerId].open) {
+                    connections[peerId].send(data);
+                }
+            });
+        }
+
+        function sendTo(peerId, data) {
+            if (connections[peerId] && connections[peerId].open) {
+                connections[peerId].send(data);
+            }
+        }
+
+        function updatePlayersList() {
+            const list = document.getElementById('playersList');
+            list.innerHTML = '<h3>Játékosok (' + Object.keys(players).length + ')</h3>';
+            
+            gameState.playerOrder.forEach((peerId, index) => {
+                const player = players[peerId];
+                if (player) {
+                    const item = document.createElement('div');
+                    item.className = 'player-item' + (player.isHost ? ' host' : '');
+                    item.innerHTML = `
+                        <span>${index + 1}. ${player.name} ${player.isHost ? '👑' : ''}</span>
+                        <span>${player.peerId === myPeerId ? '(Te)' : ''}</span>
+                    `;
+                    list.appendChild(item);
+                }
+            });
+        }
+
+        function updateLobbySettings() {
+            document.getElementById('drawTimeInput').value = gameSettings.drawTime;
+            document.getElementById('winPointsInput').value = gameSettings.winPoints;
+        }
+
+        function updateStartButton() {
+            const btn = document.getElementById('startGameBtn');
+            const canStart = isHost && Object.keys(players).length >= 2;
+            btn.disabled = !canStart;
+        }
+
+        function sendLobbyChat() {
+            const input = document.getElementById('lobbyChatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const data = {
+                type: 'lobby-chat',
+                message: message,
+                playerName: playerName
+            };
+
+            addLobbyChatMessage(message, 'player', playerName);
+            
+            if (isHost) {
+                // Host mindenkinek küldi
+                broadcast(data);
+            } else {
+                // Játékos csak a hostnak küldi, a host továbbítja
+                broadcast(data);
+            }
+            
+            input.value = '';
+        }
+
+        function addLobbyChatMessage(message, type, playerName = '') {
+            const container = document.getElementById('lobbyChatMessages');
+            const div = document.createElement('div');
+            div.className = 'chat-message ' + type;
+            
+            if (type === 'system') {
+                div.textContent = '🔔 ' + message;
+            } else {
+                div.textContent = playerName + ': ' + message;
+            }
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function startGame() {
+            if (!isHost) return;
+
+            gameSettings.drawTime = parseInt(document.getElementById('drawTimeInput').value);
+            gameSettings.winPoints = parseInt(document.getElementById('winPointsInput').value);
+
+            gameState.roundNumber = 0;
+            gameState.currentDrawer = null;
+            
+            const initialGameState = {
+                settings: gameSettings,
+                playerOrder: gameState.playerOrder,
+                scores: gameState.scores,
+                roundNumber: 0
+            };
+
+            broadcast({
+                type: 'game-start',
+                gameState: initialGameState
+            });
+
+            startGameForAll(initialGameState);
+        }
+
+        function startGameForAll(initialState) {
+            gameSettings = initialState.settings;
+            gameState.playerOrder = initialState.playerOrder;
+            gameState.scores = initialState.scores;
+            gameState.roundNumber = initialState.roundNumber;
+
+            document.getElementById('lobbyScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+
+            initializeCanvas();
+            updateScoreboard();
+            
+            if (isHost) {
+                setTimeout(() => {
+                    nextRound();
+                }, 1000);
+            }
+        }
+
+        function initializeCanvas() {
+            canvas = document.getElementById('drawingCanvas');
+            ctx = canvas.getContext('2d');
+            
+            // Responsive canvas
+            const container = canvas.parentElement;
+            const maxWidth = Math.min(800, container.clientWidth - 40);
+            const maxHeight = Math.min(600, window.innerHeight * 0.6);
+            
+            canvas.width = maxWidth;
+            canvas.height = maxHeight * (600/800);
+            
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Event listeners
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            // Touch events
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+
+            // Color picker
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentColor = this.dataset.color;
+                });
+            });
+
+            // Brush size
+            const sizeSlider = document.getElementById('brushSize');
+            sizeSlider.addEventListener('input', function() {
+                currentSize = this.value;
+                document.getElementById('sizeValue').textContent = this.value;
+            });
+        }
+
+        function startDrawing(e) {
+            if (!isCurrentDrawer()) return;
+            
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+        }
+
+        function draw(e) {
+            if (!isDrawing || !isCurrentDrawer()) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            drawLine(lastX, lastY, x, y, currentColor, currentSize);
+            
+            broadcast({
+                type: 'draw-data',
+                x1: lastX / canvas.width,
+                y1: lastY / canvas.height,
+                x2: x / canvas.width,
+                y2: y / canvas.height,
+                color: currentColor,
+                size: currentSize
+            });
+            
+            lastX = x;
+            lastY = y;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function drawLine(x1, y1, x2, y2, color, size) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = size;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        function drawRemoteLine(data) {
+            const x1 = data.x1 * canvas.width;
+            const y1 = data.y1 * canvas.height;
+            const x2 = data.x2 * canvas.width;
+            const y2 = data.y2 * canvas.height;
+            drawLine(x1, y1, x2, y2, data.color, data.size);
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (isCurrentDrawer()) {
+                broadcast({ type: 'clear-canvas' });
+            }
+        }
+
+        function nextRound() {
+            if (!isHost) return;
+
+            gameState.roundNumber++;
+            
+            // Aktív játékosok megkeresése (akik nem léptek ki)
+            const activePlayers = gameState.playerOrder.filter(peerId => 
+                players[peerId] && !players[peerId].disconnected
+            );
+            
+            if (activePlayers.length === 0) {
+                // Nincs több játékos
+                endGameByHost();
+                return;
+            }
+            
+            // Következő aktív játékos megkeresése
+            let drawerIndex = (gameState.roundNumber - 1) % activePlayers.length;
+            gameState.currentDrawer = activePlayers[drawerIndex];
+            
+            gameState.currentWord = wordList[Math.floor(Math.random() * wordList.length)];
+            gameState.roundStartTime = Date.now();
+            gameState.guessedPlayers = [];
+
+            const roundData = {
+                type: 'round-start',
+                drawer: gameState.currentDrawer,
+                word: gameState.currentWord,
+                startTime: gameState.roundStartTime,
+                roundNumber: gameState.roundNumber
+            };
+
+            broadcast(roundData);
+            startRound(roundData);
+        }
+
+        function handlePlayerDisconnect(peerId) {
+            const gameScreenVisible = !document.getElementById('gameScreen').classList.contains('hidden');
+            
+            if (gameScreenVisible) {
+                if (players[peerId]) {
+                    players[peerId].disconnected = true;
+                }
+                updateScoreboard();
+            } else {
+                delete players[peerId];
+                const index = gameState.playerOrder.indexOf(peerId);
+                if (index > -1) {
+                    gameState.playerOrder.splice(index, 1);
+                }
+                delete gameState.scores[peerId];
+                updatePlayersList();
+                updateStartButton();
+            }
+        }
+
+        function startRound(data) {
+            gameState.currentDrawer = data.drawer;
+            gameState.currentWord = data.word;
+            gameState.roundStartTime = data.startTime;
+            gameState.roundNumber = data.roundNumber;
+            gameState.guessedPlayers = [];
+
+            clearCanvas();
+            updateScoreboard();
+
+            const drawerName = players[data.drawer].name;
+            document.getElementById('drawingPlayerName').textContent = drawerName + ' rajzol';
+
+            if (isCurrentDrawer()) {
+                document.getElementById('currentWord').textContent = data.word;
+                document.getElementById('drawingTools').style.display = 'flex';
+                document.getElementById('gameChatInput').disabled = true;
+                document.getElementById('gameChatInput').placeholder = 'Te rajzolsz...';
+            } else {
+                document.getElementById('currentWord').textContent = '_'.repeat(data.word.length).split('').join(' ');
+                document.getElementById('drawingTools').style.display = 'none';
+                document.getElementById('gameChatInput').disabled = false;
+                document.getElementById('gameChatInput').placeholder = 'Találd ki...';
+            }
+
+            startTimer();
+            addGameChatMessage('Új kör! ' + drawerName + ' rajzol!', 'system');
+        }
+
+        function startTimer() {
+            const timerElement = document.getElementById('timer');
+            
+            const updateTimer = () => {
+                const elapsed = Math.floor((Date.now() - gameState.roundStartTime) / 1000);
+                const remaining = gameSettings.drawTime - elapsed;
+
+                if (remaining <= 0) {
+                    timerElement.textContent = '0:00';
+                    timerElement.classList.remove('warning');
+                    timerElement.classList.add('danger');
+                    
+                    if (isHost) {
+                        endRoundByHost();
+                    }
+                    return;
+                }
+
+                const minutes = Math.floor(remaining / 60);
+                const seconds = remaining % 60;
+                timerElement.textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+
+                if (remaining <= 30) {
+                    timerElement.classList.add('warning');
+                } else {
+                    timerElement.classList.remove('warning');
+                }
+
+                if (remaining <= 10) {
+                    timerElement.classList.add('danger');
+                }
+
+                setTimeout(updateTimer, 100);
+            };
+
+            updateTimer();
+        }
+
+        function sendGameChat() {
+            const input = document.getElementById('gameChatInput');
+            const message = input.value.trim();
+            if (!message || isCurrentDrawer()) return;
+
+            const data = {
+                type: 'game-chat',
+                message: message,
+                playerName: playerName,
+                playerId: myPeerId
+            };
+
+            if (isHost) {
+                // Host feldolgozza és mindenkinek küldi
+                handleGameChat(data);
+                broadcast(data);
+            } else {
+                // Játékos csak a hostnak küldi
+                broadcast(data);
+                // Saját magának megjelenítés (ha nem találat)
+                if (message.toLowerCase() !== gameState.currentWord.toLowerCase()) {
+                    addGameChatMessage(message, 'player', playerName);
+                }
+            }
+            
+            input.value = '';
+        }
+
+        function handleGameChat(data) {
+            if (isHost && !gameState.guessedPlayers.includes(data.playerId)) {
+                if (data.message.toLowerCase() === gameState.currentWord.toLowerCase()) {
+                    gameState.guessedPlayers.push(data.playerId);
+                    gameState.scores[data.playerId]++;
+                    
+                    broadcast({
+                        type: 'correct-guess',
+                        playerId: data.playerId,
+                        playerName: data.playerName,
+                        scores: gameState.scores
+                    });
+
+                    handleCorrectGuess({
+                        playerId: data.playerId,
+                        playerName: data.playerName,
+                        scores: gameState.scores
+                    });
+
+                    checkWinCondition();
+                    return; // Helyes tipp esetén nem jelenítjük meg a chatben
+                }
+            }
+
+            // Csak akkor jelenítjük meg ha nem host (mert a host már megjelenítette sendGameChat-ben)
+            // vagy ha host de nem saját üzenet
+            if (!isHost || data.playerId !== myPeerId) {
+                addGameChatMessage(data.message, 'player', data.playerName);
+            }
+        }
+
+        function handleCorrectGuess(data) {
+            gameState.scores = data.scores;
+            updateScoreboard();
+            addGameChatMessage(data.playerName + ' kitalálta a szót!', 'correct');
+        }
+
+        function addGameChatMessage(message, type, playerName = '') {
+            const container = document.getElementById('gameChatMessages');
+            const div = document.createElement('div');
+            div.className = 'chat-message ' + type;
+            
+            if (type === 'system') {
+                div.textContent = '🔔 ' + message;
+            } else if (type === 'correct') {
+                div.textContent = '✅ ' + message;
+            } else {
+                div.textContent = playerName + ': ' + message;
+            }
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateScoreboard() {
+            const list = document.getElementById('scoreboardList');
+            list.innerHTML = '';
+
+            const sortedPlayers = Object.entries(gameState.scores)
+                .sort((a, b) => b[1] - a[1]);
+
+            sortedPlayers.forEach(([peerId, score]) => {
+                const player = players[peerId];
+                if (player) {
+                    const item = document.createElement('div');
+                    item.className = 'score-item';
+                    
+                    if (peerId === gameState.currentDrawer) {
+                        item.classList.add('drawing');
+                    }
+                    if (peerId === myPeerId) {
+                        item.classList.add('current');
+                    }
+                    
+                    // Ha kilépett, akkor legyen áthúzva
+                    const nameStyle = player.disconnected ? 'style="text-decoration: line-through; opacity: 0.5;"' : '';
+
+                    item.innerHTML = `
+                        <span ${nameStyle}>${player.name}${player.disconnected ? ' (kilépett)' : ''}</span>
+                        <span class="score-points">${score}</span>
+                    `;
+                    list.appendChild(item);
+                }
+            });
+        }
+
+        function checkWinCondition() {
+            const winner = Object.entries(gameState.scores)
+                .find(([peerId, score]) => score >= gameSettings.winPoints);
+
+            if (winner) {
+                endGameByHost();
+            } else {
+                // Csak az aktív játékosokat számoljuk (akik nem léptek ki és nem a rajzoló)
+                const activePlayers = gameState.playerOrder.filter(peerId => 
+                    players[peerId] && !players[peerId].disconnected && peerId !== gameState.currentDrawer
+                );
+                
+                if (gameState.guessedPlayers.length === activePlayers.length) {
+                    setTimeout(() => {
+                        endRoundByHost();
+                    }, 2000);
+                }
+            }
+        }
+
+        function endRoundByHost() {
+            if (!isHost) return;
+
+            broadcast({
+                type: 'round-end',
+                word: gameState.currentWord,
+                scores: gameState.scores
+            });
+
+            endRound({ word: gameState.currentWord, scores: gameState.scores });
+
+            setTimeout(() => {
+                nextRound();
+            }, 3000);
+        }
+
+        function endRound(data) {
+            addGameChatMessage('A szó: ' + data.word, 'system');
+            gameState.scores = data.scores;
+            updateScoreboard();
+        }
+
+        function endGameByHost() {
+            if (!isHost) return;
+
+            broadcast({
+                type: 'game-end',
+                finalScores: gameState.scores
+            });
+
+            showPodium(gameState.scores);
+        }
+
+        function showPodium(finalScores) {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('podiumScreen').classList.remove('hidden');
+
+            const sortedPlayers = Object.entries(finalScores)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
+
+            const podium = document.getElementById('podium');
+            podium.innerHTML = '';
+
+            const places = ['first', 'second', 'third'];
+            const ranks = ['🥇', '🥈', '🥉'];
+
+            sortedPlayers.forEach(([peerId, score], index) => {
+                const player = players[peerId];
+                if (player) {
+                    const div = document.createElement('div');
+                    div.className = 'podium-place ' + places[index];
+                    div.innerHTML = `
+                        <div class="podium-rank">${ranks[index]}</div>
+                        <div class="podium-name">${player.name}</div>
+                        <div class="podium-score">${score} pont</div>
+                    `;
+                    podium.appendChild(div);
+                }
+            });
+        }
+
+        function returnToLobby() {
+            if (isHost) {
+                broadcast({ type: 'return-lobby' });
+            }
+
+            document.getElementById('podiumScreen').classList.add('hidden');
+            document.getElementById('lobbyScreen').classList.remove('hidden');
+
+            Object.keys(gameState.scores).forEach(peerId => {
+                gameState.scores[peerId] = 0;
+            });
+
+            gameState.roundNumber = 0;
+            gameState.currentDrawer = null;
+            gameState.guessedPlayers = [];
+
+            updatePlayersList();
+            updateStartButton();
+        }
+
+        function isCurrentDrawer() {
+            return myPeerId === gameState.currentDrawer;
+        }
+
+        function copyLobbyServerId() {
+            const serverId = document.getElementById('lobbyServerIdDisplay').textContent;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(serverId).then(() => {
+                    addLobbyChatMessage('📋 Szerver ID vágólapra másolva: ' + serverId, 'system');
+                }).catch(err => {
+                    console.error('Másolási hiba:', err);
+                    fallbackCopy(serverId);
+                });
+            } else {
+                fallbackCopy(serverId);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const input = document.createElement('input');
+            input.value = text;
+            input.style.position = 'fixed';
+            input.style.top = '0';
+            input.style.left = '0';
+            document.body.appendChild(input);
+            input.focus();
+            input.select();
+            try {
+                document.execCommand('copy');
+                addLobbyChatMessage('📋 Szerver ID vágólapra másolva: ' + text, 'system');
+            } catch (err) {
+                addLobbyChatMessage('❌ Másolás sikertelen', 'system');
+            }
+            document.body.removeChild(input);
+        }
+
+        // Settings változás
+        document.getElementById('drawTimeInput')?.addEventListener('change', function() {
+            if (isHost) {
+                gameSettings.drawTime = parseInt(this.value);
+                broadcast({
+                    type: 'settings-update',
+                    settings: gameSettings
+                });
+            }
+        });
+
+        document.getElementById('winPointsInput')?.addEventListener('change', function() {
+            if (isHost) {
+                gameSettings.winPoints = parseInt(this.value);
+                broadcast({
+                    type: 'settings-update',
+                    settings: gameSettings
+                });
+            }
+        });
+
+        // Service Worker regisztráció (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker regisztrálva:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker regisztráció sikertelen:', error);
+                    });
+            });
+        }
+
+        // PWA telepítés figyelése
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('PWA telepíthető');
+        });
+    </script>
+</body>
+</html>
